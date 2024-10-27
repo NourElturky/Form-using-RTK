@@ -1,64 +1,52 @@
 "use client";
 
-import { useState } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-
+import { useDispatch, useSelector } from "react-redux";
+import { RootState } from "../store"; 
+import { setFormData } from "../store/formSlice"; 
 import { Button } from "@/components/ui/button";
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
+  Form, FormControl, FormField, FormItem, FormLabel, FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  Select,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
+  Select, SelectItem, SelectTrigger, SelectValue, SelectContent,
 } from "@/components/ui/select";
 
-// Define schema for different input fields
 const FormSchema = z.object({
-  username: z
-    .string()
-    .min(3, { message: "Username must be at least 3 characters." })
-    .max(8, { message: "Username must be at most 8 characters." }),
-  email: z.string().email({ message: "Please enter a valid email address." }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters." }),
-  role: z.enum(["user", "admin", "superadmin"], {
-    required_error: "You need to select a role.",
-  }),
-  agreeToTerms: z.boolean().refine((val) => val === true, {
-    message: "You must agree to terms and conditions.",
-  }),
+  username: z.string().min(3).max(8),
+  email: z.string().email(),
+  password: z.string().min(6),
+  role: z.enum(["user", "admin", "superadmin"]),
+  agreeToTerms: z.boolean().refine(val => val === true, { message: "You must agree to terms." }),
 });
 
 export function ReduxForm() {
   const [submittedData, setSubmittedData] = useState<z.infer<typeof FormSchema> | null>(null);
 
+  const dispatch = useDispatch();
+  const reduxData = useSelector((state: RootState) => state.form); // Get form data from Redux
+
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
-    defaultValues: {
-      username: "",
-      email: "",
-      password: "",
-      role: "user",
-      agreeToTerms: false,
-    },
+    defaultValues: reduxData, // Use Redux data as default values
   });
 
-  
   const onSubmit = (data: z.infer<typeof FormSchema>) => {
     setSubmittedData(data);
+
+    dispatch(setFormData(data)); // Save to Redux
+    localStorage.setItem("formData", JSON.stringify(data)); // Save to localStorage
   };
 
+  useEffect(() => {
+    // Populate the form with Redux data
+    form.reset(reduxData);
+  }, [reduxData, form]);
 
   return (
     <div className="max-w-lg mx-auto p-8 mt-8 bg-white shadow-md rounded-lg">
